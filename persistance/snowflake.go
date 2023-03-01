@@ -6,12 +6,24 @@ import (
 	"errors"
 	"fmt"
 	"github.com/snowflakedb/gosnowflake"
+	"log"
 	"strconv"
 	"strings"
+	"time"
 )
 
+func NewPersistor(connStr string) (Persistor, error) {
+	db, err := sql.Open(`snowflake`, connStr)
+	if err != nil {
+		return nil, err
+	}
+	persistor := &SnowflakePersistor{db: db}
+	go persistor.keepAlive()
+	return persistor, nil
+}
+
 type SnowflakePersistor struct {
-	ConnStr string
+	db *sql.DB
 }
 
 func (s *SnowflakePersistor) Insert(table string, values map[string]interface{}) (int64, error) {
@@ -74,15 +86,20 @@ func (s *SnowflakePersistor) TestConnection(table string) (*QueryResult, error) 
 	return s.query(stmnt, 1, []interface{}{})
 }
 
-func (s *SnowflakePersistor) exec(stmt string, params []interface{}) (int64, error) {
-	db, err := sql.Open(`snowflake`, s.ConnStr)
-	if err != nil {
-		return 0, err
+func (s *SnowflakePersistor) keepAlive() {
+	for {
+		rows, err := s.db.Query(`SELECT 1`)
+		if err != nil {
+			log.Printf(err.Error())
+			continue
+		}
+		_ = rows.Close()
+		time.Sleep(time.Hour)
 	}
-	defer func() {
-		_ = db.Close()
-	}()
-	prep, err := db.Prepare(stmt)
+}
+
+func (s *SnowflakePersistor) exec(stmt string, params []interface{}) (int64, error) {
+	prep, err := s.db.Prepare(stmt)
 	if err != nil {
 		return 0, err
 	}
@@ -94,15 +111,7 @@ func (s *SnowflakePersistor) exec(stmt string, params []interface{}) (int64, err
 }
 
 func (s *SnowflakePersistor) query(stmnt string, totalStatements int, params []interface{}) (*QueryResult, error) {
-	db, err := sql.Open(`snowflake`, s.ConnStr)
-	if err != nil {
-		return nil, err
-	}
-	defer func() {
-		_ = db.Close()
-	}()
-
-	prepared, err := db.Prepare(stmnt)
+	prepared, err := s.db.Prepare(stmnt)
 	if err != nil {
 		return nil, err
 	}

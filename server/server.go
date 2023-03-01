@@ -52,9 +52,11 @@ func LoadServer(settingsPath string) (*Server, error) {
 	for _, conn := range server.Settings.Connections {
 		switch {
 		case conn.Driver == `snowflake`:
-			server.Persistors[conn.Name] = &persistance.SnowflakePersistor{
-				ConnStr: conn.ConnStr,
+			persistor, err := persistance.NewPersistor(conn.ConnStr)
+			if err != nil {
+				return nil, err
 			}
+			server.Persistors[conn.Name] = persistor
 		default:
 			fmt.Printf(`invalid driver %q, expected 'snowflake'`, conn.Driver)
 		}
