@@ -1,32 +1,26 @@
 package persistance
 
 type Persistor interface {
-	Insert(values map[string]interface{}) (int, error)
-	Update(where []SqlSnippetGenerator, updates []SqlSnippetGenerator) (int, error)
-	Delete(where []SqlSnippetGenerator) (int, error)
-	Read(fields []string, where []SqlSnippetGenerator, orderBy []string, pageSize int, page int) (*QueryResult, error)
-	TestConnection() (*QueryResult, error)
+	Insert(table string, values map[string]interface{}) (int64, error)
+	Update(table string, where []SqlSnippetGenerator, updates []SqlSnippetGenerator) (int64, error)
+	Delete(table string, where []SqlSnippetGenerator) (int64, error)
+	Read(table string, fields []string, where []SqlSnippetGenerator, orderBy []string, pageSize int, page int) (*QueryResult, error)
+	TestConnection(table string) (*QueryResult, error)
 }
 
 type SqlSnippetGenerator interface {
-	ToSqlSnippet(paramNames ...string) (*SqlSnippet, error)
+	ToSqlSnippet() *SqlSnippet
 	ParamsRequired() int
 }
 
 type SqlSnippet struct {
 	Snippet string
-	Params  []Param
+	Params  []interface{}
 }
 
 type SqlPart struct {
-	Value     string
-	Params    []Param
-	NextParam int
-}
-
-type Param struct {
-	Name  string
-	Value interface{}
+	Value  string
+	Params []interface{}
 }
 
 type QueryResult struct {

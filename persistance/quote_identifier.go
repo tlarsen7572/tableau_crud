@@ -1,4 +1,4 @@
-package persistance_mssql
+package persistance
 
 import (
 	"errors"
@@ -16,8 +16,8 @@ func QuoteIdentifiers(identifiers []string) string {
 }
 
 func QuoteIdentifier(identifier string) string {
-	quoted := strings.ReplaceAll(identifier, `]`, `]]`)
-	return fmt.Sprintf(`[%v]`, quoted)
+	quoted := strings.ReplaceAll(identifier, `"`, `""`)
+	return fmt.Sprintf(`"%v"`, quoted)
 }
 
 func ValidateParam(param string) error {

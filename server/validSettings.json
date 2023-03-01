@@ -1,0 +1,12 @@
+{
+  "Address": "localhost:35012",
+  "UseTls": true,
+  "ApiKey": "12345",
+  "Connections": [
+    {
+      "Name": "test",
+      "Driver": "snowflake",
+      "ConnStr": "UNIT_TESTER:h5DDUpAFGT@nq50151.east-us-2.azure/TESTING/PUBLIC?warehouse=COMPUTE_WH"
+    }
+  ]
+}
