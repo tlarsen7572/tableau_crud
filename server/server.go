@@ -9,6 +9,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 	errors "tableau_crud/error_messaging"
 	v "tableau_crud/params_validators"
 	"tableau_crud/persistance"
@@ -56,7 +57,7 @@ func LoadServer(settingsPath string) (*Server, error) {
 			if err != nil {
 				return nil, err
 			}
-			server.Persistors[conn.Name] = persistor
+			server.Persistors[strings.ToLower(conn.Name)] = persistor
 		default:
 			fmt.Printf(`invalid driver %q, expected 'snowflake'`, conn.Driver)
 		}
@@ -72,7 +73,6 @@ func LoadServer(settingsPath string) (*Server, error) {
 	api.Path(`/update`).HandlerFunc(server.handleUpdate)
 	api.Path(`/delete`).HandlerFunc(server.handleDelete)
 	api.Path(`/test`).HandlerFunc(server.handleTestConnection)
-	api.Path(`/connections`).HandlerFunc(server.handleListConnections)
 
 	server.Handler = m
 
@@ -216,9 +216,10 @@ func (s *Server) handleTestConnection(w http.ResponseWriter, r *http.Request) {
 		sendErrorResponse(w, err.Error())
 		return
 	}
-	persistor, ok := s.Persistors[params.Connection]
+	persistor, ok := s.Persistors[strings.ToLower(params.Connection)]
 	if !ok {
 		sendErrorResponse(w, fmt.Sprintf(`connection %q is not valid`, params.Connection))
+		return
 	}
 	result, err := persistor.TestConnection(params.Table)
 	if err != nil {
@@ -226,19 +227,6 @@ func (s *Server) handleTestConnection(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	sendNormalResponse(w, result)
-}
-
-func (s *Server) handleListConnections(w http.ResponseWriter, r *http.Request) {
-	_, err := validatePayload[ConnectionListParams](s, r)
-	if err != nil {
-		sendErrorResponse(w, err.Error())
-		return
-	}
-	connections := make([]string, 0, len(s.Persistors))
-	for key := range s.Persistors {
-		connections = append(connections, key)
-	}
-	sendNormalResponse(w, connections)
 }
 
 func (s *Server) checkApiKey(apiKey string) error {
@@ -284,8 +272,16 @@ type ApiKeyPayload interface {
 	GetApiKey() string
 }
 
+type ApiKey struct {
+	ApiKey string
+}
+
+func (a ApiKey) GetApiKey() string {
+	return a.ApiKey
+}
+
 type ReadParams struct {
-	ApiKey     string
+	ApiKey
 	Connection string
 	Table      string
 	Fields     []string
@@ -295,58 +291,30 @@ type ReadParams struct {
 	Page       int
 }
 
-func (p ReadParams) GetApiKey() string {
-	return p.ApiKey
-}
-
 type UpdateParams struct {
-	ApiKey     string
+	ApiKey
 	Connection string
 	Table      string
 	Where      []interface{}
 	Updates    map[string]interface{}
 }
 
-func (p UpdateParams) GetApiKey() string {
-	return p.ApiKey
-}
-
 type DeleteParams struct {
-	ApiKey     string
+	ApiKey
 	Connection string
 	Table      string
 	Where      []interface{}
 }
 
-func (p DeleteParams) GetApiKey() string {
-	return p.ApiKey
-}
-
 type TestParams struct {
-	ApiKey     string
+	ApiKey
 	Connection string
 	Table      string
-}
-
-func (p TestParams) GetApiKey() string {
-	return p.ApiKey
 }
 
 type InsertParams struct {
-	ApiKey     string
+	ApiKey
 	Connection string
 	Table      string
 	Values     map[string]interface{}
-}
-
-func (p InsertParams) GetApiKey() string {
-	return p.ApiKey
-}
-
-type ConnectionListParams struct {
-	ApiKey string
-}
-
-func (p ConnectionListParams) GetApiKey() string {
-	return p.ApiKey
 }
