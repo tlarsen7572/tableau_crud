@@ -120,9 +120,9 @@ func (s *Server) handleInsert(w http.ResponseWriter, r *http.Request) {
 		sendErrorResponse(w, err.Error())
 		return
 	}
-	persistor, ok := s.Persistors[params.Connection]
-	if !ok {
-		sendErrorResponse(w, fmt.Sprintf(`connection %q is not valid`, params.Connection))
+	persistor, err := s.getPersistor(params.Connection)
+	if err != nil {
+		sendErrorResponse(w, err.Error())
 		return
 	}
 	result, err := persistor.Insert(params.Table, params.Values)
@@ -139,9 +139,9 @@ func (s *Server) handleUpdate(w http.ResponseWriter, r *http.Request) {
 		sendErrorResponse(w, err.Error())
 		return
 	}
-	persistor, ok := s.Persistors[params.Connection]
-	if !ok {
-		sendErrorResponse(w, fmt.Sprintf(`connection %q is not valid`, params.Connection))
+	persistor, err := s.getPersistor(params.Connection)
+	if err != nil {
+		sendErrorResponse(w, err.Error())
 		return
 	}
 	whereClauses, err := v.ValidateWhereClauses(params.Where)
@@ -168,9 +168,9 @@ func (s *Server) handleDelete(w http.ResponseWriter, r *http.Request) {
 		sendErrorResponse(w, err.Error())
 		return
 	}
-	persistor, ok := s.Persistors[params.Connection]
-	if !ok {
-		sendErrorResponse(w, fmt.Sprintf(`connection %q is not valid`, params.Connection))
+	persistor, err := s.getPersistor(params.Connection)
+	if err != nil {
+		sendErrorResponse(w, err.Error())
 		return
 	}
 	whereClauses, err := v.ValidateWhereClauses(params.Where)
@@ -192,9 +192,9 @@ func (s *Server) handleRead(w http.ResponseWriter, r *http.Request) {
 		sendErrorResponse(w, err.Error())
 		return
 	}
-	persistor, ok := s.Persistors[params.Connection]
-	if !ok {
-		sendErrorResponse(w, fmt.Sprintf(`connection %q is not valid`, params.Connection))
+	persistor, err := s.getPersistor(params.Connection)
+	if err != nil {
+		sendErrorResponse(w, err.Error())
 		return
 	}
 	whereClauses, err := v.ValidateWhereClauses(params.Where)
@@ -216,9 +216,9 @@ func (s *Server) handleTestConnection(w http.ResponseWriter, r *http.Request) {
 		sendErrorResponse(w, err.Error())
 		return
 	}
-	persistor, ok := s.Persistors[strings.ToLower(params.Connection)]
-	if !ok {
-		sendErrorResponse(w, fmt.Sprintf(`connection %q is not valid`, params.Connection))
+	persistor, err := s.getPersistor(params.Connection)
+	if err != nil {
+		sendErrorResponse(w, err.Error())
 		return
 	}
 	result, err := persistor.TestConnection(params.Table)
@@ -234,6 +234,14 @@ func (s *Server) checkApiKey(apiKey string) error {
 		return nil
 	}
 	return fmt.Errorf(`api key is invalid`)
+}
+
+func (s *Server) getPersistor(connection string) (persistance.Persistor, error) {
+	persistor, ok := s.Persistors[strings.ToLower(connection)]
+	if !ok {
+		return nil, fmt.Errorf(`connection %q is not valid`, connection)
+	}
+	return persistor, nil
 }
 
 func validatePayload[T ApiKeyPayload](s *Server, r *http.Request) (T, error) {
