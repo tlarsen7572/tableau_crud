@@ -70,14 +70,16 @@ func (s *SnowflakePersistor) Read(table string, fields []string, where []SqlSnip
 	whereClause := GenerateCombinedWhereClause(where)
 	orderByFields := QuoteIdentifiers(orderBy)
 	offset := (page - 1) * pageSize
+	params := make([]interface{}, 0)
 	var stmnt string
 	if len(where) > 0 {
 		stmnt = fmt.Sprintf(`SELECT %v FROM %v WHERE %v ORDER BY %v OFFSET %v ROWS FETCH NEXT %v ROWS ONLY; SELECT count(*) FROM %v WHERE %v`, selectFields, table, whereClause.Value, orderByFields, offset, pageSize, table, whereClause.Value)
+		params = append(whereClause.Params, whereClause.Params...)
 	} else {
 		stmnt = fmt.Sprintf(`SELECT %v FROM %v ORDER BY %v OFFSET %v ROWS FETCH NEXT %v ROWS ONLY; SELECT count(*) FROM %v`, selectFields, table, orderByFields, offset, pageSize, table)
 	}
 
-	return s.query(stmnt, 2, whereClause.Params)
+	return s.query(stmnt, 2, params)
 }
 
 func (s *SnowflakePersistor) TestConnection(table string) (*QueryResult, error) {
@@ -94,7 +96,7 @@ func (s *SnowflakePersistor) keepAlive() {
 			continue
 		}
 		_ = rows.Close()
-		time.Sleep(time.Hour)
+		time.Sleep(time.Minute * 30)
 	}
 }
 

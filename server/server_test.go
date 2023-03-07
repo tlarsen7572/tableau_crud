@@ -24,6 +24,22 @@ func TestSelect(t *testing.T) {
 	}
 }
 
+func TestSelectWhere(t *testing.T) {
+	s, err := LoadServer(`validSettings.json`)
+	if err != nil {
+		t.Fatalf(`got error %v`, err.Error())
+	}
+	body := io.NopCloser(strings.NewReader(`{"ApiKey":"12345","Connection":"test","Table":"TABLEAU_CRUD_TEST","Fields":["KEY","NAME","AT"],"Where":[{"field": "KEY", "operator": "in", "values": ["1"], "includeNulls": false, "exclude": false}],"OrderBy":["KEY"],"PageSize":10,"Page":1}`))
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest(`POST`, `https://test.com/api/select`, body)
+	s.Handler.ServeHTTP(w, r)
+
+	t.Logf(w.Body.String())
+	if w.Code != 200 {
+		t.Fatalf(`expected 200 but got %v`, w.Code)
+	}
+}
+
 func TestTest(t *testing.T) {
 	s, err := LoadServer(`validSettings.json`)
 	if err != nil {
