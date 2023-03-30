@@ -105,6 +105,10 @@ func (s *SnowflakePersistor) exec(stmt string, params []interface{}) (int64, err
 	if err != nil {
 		return 0, err
 	}
+	defer func() {
+		_ = prep.Close()
+	}()
+
 	result, err := prep.Exec(params...)
 	if err != nil {
 		return 0, err
@@ -117,6 +121,9 @@ func (s *SnowflakePersistor) query(stmnt string, totalStatements int, params []i
 	if err != nil {
 		return nil, err
 	}
+	defer func() {
+		_ = prepared.Close()
+	}()
 
 	multiStmnt, err := gosnowflake.WithMultiStatement(context.Background(), totalStatements)
 
