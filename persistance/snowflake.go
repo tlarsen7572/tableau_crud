@@ -6,10 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"github.com/snowflakedb/gosnowflake"
-	"log"
 	"strconv"
 	"strings"
-	"time"
 )
 
 func NewPersistor(connStr string) (Persistor, error) {
@@ -18,7 +16,6 @@ func NewPersistor(connStr string) (Persistor, error) {
 		return nil, err
 	}
 	persistor := &SnowflakePersistor{db: db}
-	go persistor.keepAlive()
 	return persistor, nil
 }
 
@@ -86,18 +83,6 @@ func (s *SnowflakePersistor) TestConnection(table string) (*QueryResult, error) 
 	table = QuoteIdentifier(table)
 	stmnt := fmt.Sprintf(`SELECT TOP 0 * FROM %v`, table)
 	return s.query(stmnt, 1, []interface{}{})
-}
-
-func (s *SnowflakePersistor) keepAlive() {
-	for {
-		rows, err := s.db.Query(`SELECT 1`)
-		if err != nil {
-			log.Printf(err.Error())
-			continue
-		}
-		_ = rows.Close()
-		time.Sleep(time.Minute * 30)
-	}
 }
 
 func (s *SnowflakePersistor) exec(stmt string, params []interface{}) (int64, error) {
