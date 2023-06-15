@@ -1,6 +1,7 @@
 package server
 
 import (
+	"encoding/json"
 	_ "github.com/snowflakedb/gosnowflake"
 	"io"
 	"net/http/httptest"
@@ -135,4 +136,37 @@ func TestInsertUpdateDelete(t *testing.T) {
 	if w.Code != 200 {
 		t.Fatalf(`expected 200 but got %v`, w.Code)
 	}
+}
+
+func TestDecodeNull(t *testing.T) {
+	payload := `{"Name": null}`
+	var parsed map[string]interface{}
+	err := json.Unmarshal([]byte(payload), &parsed)
+	if err != nil {
+		t.Fatalf(`got error %v`, err.Error())
+	}
+	value, ok := parsed[`Name`]
+	if !ok {
+		t.Fatalf(`did not find Name`)
+	}
+	if value != nil {
+		t.Fatalf(`expected nil but got %v`, value)
+	}
+
+}
+
+func TestUpdateNullDate(t *testing.T) {
+	s, err := LoadServer(`validSettings.json`)
+	if err != nil {
+		t.Fatalf(`got error %v`, err.Error())
+	}
+	body := io.NopCloser(strings.NewReader(`{"ApiKey":"12345","Connection":"test","Table":"ICM_REVIEW","Where":[{"field":"KEY","operator":"equals","values":["TEST|TEST"],"includeNulls":false,"exclude":false},{"field":"OBJECT","operator":"equals","values":["Project"],"includeNulls":false,"exclude":false},{"field":"OPENED","operator":"equals","values":["2020-01-01T00:00:00Z"],"includeNulls":false,"exclude":false}],"Updates":{"OBJECT":"Project","KEY":"TEST|TEST","ASSIGNED_TO":"ME","PRIVATE_COMMENT":"","OPENED":"2020-01-01","CLOSED":null,"RESOLUTION":"","JUSTIFICATION":"","EP_CASE_NUMBER":"","CHANGED_BY":"ME","CHANGED_ON":"2023-06-15T13:05:51.293"}}`))
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest(`POST`, `https://test.com/api/update`, body)
+	s.Handler.ServeHTTP(w, r)
+	t.Logf(w.Body.String())
+	if w.Code != 200 {
+		t.Fatalf(`expected 200 but got %v`, w.Code)
+	}
+
 }

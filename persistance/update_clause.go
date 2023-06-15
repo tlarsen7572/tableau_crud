@@ -30,7 +30,7 @@ func GenerateCombinedUpdateClause(clauses []SqlSnippetGenerator) *SqlPart {
 	for _, clause := range clauses {
 		update := clause.ToSqlSnippet()
 		updates = append(updates, update.Snippet)
-		allParams = append(allParams, update.Params)
+		allParams = append(allParams, update.Params[0])
 	}
 	return &SqlPart{Value: strings.Join(updates, `,`), Params: allParams}
 }
